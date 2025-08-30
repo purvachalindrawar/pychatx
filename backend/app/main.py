@@ -5,14 +5,16 @@ from fastapi.staticfiles import StaticFiles
 
 from .settings import settings
 from .db import Base, engine
-from .models import User  # noqa: F401  (import to register model)
+from .models import User, Room, RoomMember  # noqa: F401
 from .routers.users import router as users_router
+from .routers.auth import router as auth_router
+from .routers.rooms import router as rooms_router
 
-app = FastAPI(title="PyChatX", version="0.3.0")
+app = FastAPI(title="PyChatX", version="0.5.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tighten later
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -20,10 +22,9 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup():
-    # For SQLite (dev/tests) we still auto-create tables to keep things easy
+    # Auto-create only for SQLite (dev/tests). For Postgres/Neon, use Alembic.
     if settings.DATABASE_URL.startswith("sqlite"):
         Base.metadata.create_all(bind=engine)
-    # For Postgres we rely on Alembic migrations. No auto-create here.
 
 @app.get("/api/v1/health")
 async def health():
@@ -39,9 +40,11 @@ async def ws_endpoint(ws: WebSocket):
     except WebSocketDisconnect:
         pass
 
-# Include API routes first
+# Include routers
+app.include_router(auth_router)
 app.include_router(users_router)
+app.include_router(rooms_router)
 
-# Mount static demo at /web
+# Static demo page
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/web", StaticFiles(directory=STATIC_DIR, html=True), name="static")
