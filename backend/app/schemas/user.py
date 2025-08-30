@@ -14,4 +14,4 @@ class UserOut(BaseModel):
     display_name: str
 
     class Config:
-        from_attributes = True  # Pydantic v2: read from ORM
+        from_attributes = True

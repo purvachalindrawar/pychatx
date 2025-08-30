@@ -1,7 +1,7 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    # SQLite for now. We'll switch to Postgres in the next task.
+    # Default to Postgres via .env, but if not set, fall back to SQLite (dev/tests)
     DATABASE_URL: str = "sqlite:///./pychatx.db"
 
     class Config:

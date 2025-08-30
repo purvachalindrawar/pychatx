@@ -8,7 +8,6 @@ from ..schemas.user import UserCreate, UserOut, UserUpdate
 
 router = APIRouter(prefix="/api/v1/users", tags=["users"])
 
-
 @router.post("", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def create_user(payload: UserCreate, db: Session = Depends(get_db)):
     exists = db.query(User).filter(User.email == payload.email).first()
@@ -20,12 +19,10 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db)):
     db.refresh(user)
     return user
 
-
 @router.get("", response_model=List[UserOut])
 def list_users(skip: int = 0, limit: int = 50, db: Session = Depends(get_db)):
     users = db.query(User).order_by(User.id.asc()).offset(skip).limit(limit).all()
     return users
-
 
 @router.get("/{user_id}", response_model=UserOut)
 def get_user(user_id: int, db: Session = Depends(get_db)):
@@ -33,7 +30,6 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
-
 
 @router.patch("/{user_id}", response_model=UserOut)
 def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)):
@@ -45,7 +41,6 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
     db.commit()
     db.refresh(user)
     return user
-
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(user_id: int, db: Session = Depends(get_db)):
