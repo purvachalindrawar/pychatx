@@ -1,6 +1,13 @@
 /* ============================= */
-/* Light theme (toggle via App)  */
+/* Safer theming + responsiveness */
 /* ============================= */
+
+/* Use a variable for the whole-page gradient so there’s always a fallback */
+:root{
+  --bg-grad: linear-gradient(180deg,#0b0d12,#0b0d12 40%,#0e1220);
+}
+
+/* Light theme overrides (toggle via document.documentElement.dataset.theme = 'light') */
 :root[data-theme="light"]{
   --bg:#f7f9ff;
   --panel:#ffffff;
@@ -11,12 +18,13 @@
   --danger:#d64a4a;
   --ok:#0ea568;
   --ring: 0 0 0 2px rgba(59,108,255,.25), 0 8px 24px rgba(0,0,0,.12);
-}
-:root[data-theme="light"] body{
-  background:linear-gradient(180deg,#f7f9ff,#eef2ff 40%,#e9ecff);
+  --bg-grad: linear-gradient(180deg,#f7f9ff,#eef2ff 40%,#e9ecff);
 }
 
-/* Gentle shimmer on the brand cube */
+/* Apply the gradient via the variable so we never end up with a blank page */
+body{ background: var(--bg-grad); }
+
+/* Gentle shimmer on the brand cube (non-blocking eye candy) */
 @keyframes badgePulse{
   0%,100%{ filter: drop-shadow(0 0 0 rgba(91,140,255,0)); }
   50%{ filter: drop-shadow(0 0 12px rgba(91,140,255,.35)); }
@@ -33,17 +41,9 @@
   textarea.input{ height:72px; }
 }
 
-/* ================================== */
-/*   Responsive layout adjustments    */
-/* ================================== */
-
 /* Tablet & small desktop */
 @media (max-width: 1100px){
-  /* Stack the app: sidebar becomes a compact strip above chat */
-  .shell{
-    display:flex;
-    flex-direction:column;
-  }
+  .shell{ display:flex; flex-direction:column; }
 
   .sidebar{
     order:0;
@@ -53,10 +53,10 @@
     padding:8px 12px;
   }
 
-  /* Hide secondary blocks (invite/share tips) to keep it clean */
+  /* Show first "Rooms" section only in compact mode to keep it clean */
   .sidebar .section:not(:first-child){ display:none; }
 
-  /* Make the rooms list horizontally scrollable (no markup change) */
+  /* Horizontal, scrollable rooms strip */
   .sidebar .section > div:last-child{
     display:flex;
     gap:8px;
@@ -70,7 +70,6 @@
     scroll-snap-align:center;
   }
 
-  /* Chat area tweaks */
   .content{ order:1; grid-template-rows:52px 1fr 96px; }
   .toolbar{ gap:8px; }
   .toolbar .input{ max-width:none; }
@@ -91,7 +90,6 @@
 
   .messages{ padding:10px 8px; }
 
-  /* Sticky composer so the input is always reachable */
   .composer{
     position:sticky; bottom:0; z-index:10;
     padding:10px 8px;
@@ -103,7 +101,7 @@
   .bubble{ border-radius:14px; }
 }
 
-/* Horizontal scrollbar styling for the rooms strip */
+/* Scrollbar styling for the horizontal strip */
 .sidebar::-webkit-scrollbar{ height:8px; }
 .sidebar::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.15); border-radius:10px; }
 :root[data-theme="light"] .sidebar::-webkit-scrollbar-thumb{ background:rgba(0,0,0,.15); }
