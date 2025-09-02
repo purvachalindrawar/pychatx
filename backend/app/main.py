@@ -41,6 +41,15 @@ log = logging.getLogger(__name__)
 
 app = FastAPI(title="PyChatX Backend")
 
+from fastapi.responses import JSONResponse, Response
+
+@app.get("/")
+async def root():
+    return JSONResponse({"name": "PyChatX Backend", "status": "ok"})
+
+@app.get("/favicon.ico")
+async def favicon():
+    return Response(status_code=204)
 
 
 # Security headers + CORS
