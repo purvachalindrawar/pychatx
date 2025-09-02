@@ -1,49 +1,64 @@
-from __future__ import annotations
-import sys
 from logging.config import fileConfig
-
 from alembic import context
 from sqlalchemy import engine_from_config, pool
+import os
 
-# Make sure repo root is on sys.path (so imports work when running alembic from root)
-# (alembic.ini has prepend_sys_path = . but we do this to be safe)
-sys.path.append(".")
-
-from backend.app.db import Base  # noqa
-from backend.app.settings import settings  # noqa
-
-# Import models so metadata is aware of them
-from backend.app.models import User  # noqa
-
+# Interpret the config file for Python logging.
 config = context.config
-fileConfig(config.config_file_name)  # logging
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
 
-# Use DATABASE_URL from our settings (.env)
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Load app settings & metadata
+# Adjust the import if your package path differs
+from backend.app.settings import settings
+from backend.app.db import Base  # this should expose SQLAlchemy Base
 
 target_metadata = Base.metadata
 
+# Make sure alembic knows our runtime DB URL
+if settings.DATABASE_URL:
+    config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+
+
 def run_migrations_offline() -> None:
-    url = settings.DATABASE_URL
+    """Run migrations in 'offline' mode."""
+    url = config.get_main_option("sqlalchemy.url")
+    # For offline mode, we can’t inspect an actual connection.
+    # render_as_batch is inferred from URL for sqlite.
+    render_as_batch = url.startswith("sqlite")
     context.configure(
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
+        render_as_batch=render_as_batch,
+        compare_type=True,
     )
     with context.begin_transaction():
         context.run_migrations()
 
+
 def run_migrations_online() -> None:
+    """Run migrations in 'online' mode."""
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section),
+        config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        future=True,
     )
+
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        is_sqlite = connection.dialect.name == "sqlite"
+
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            render_as_batch=is_sqlite,  # IMPORTANT for sqlite ALTERs
+            compare_type=True,
+        )
+
         with context.begin_transaction():
             context.run_migrations()
+
 
 if context.is_offline_mode():
     run_migrations_offline()

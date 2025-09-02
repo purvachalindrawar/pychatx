@@ -1,12 +1,11 @@
 """create users table
 
 Revision ID: 202508300001
-Revises: 
+Revises:
 Create Date: 2025-08-30 00:01:00
 """
 from alembic import op
 import sqlalchemy as sa
-
 
 # revision identifiers, used by Alembic.
 revision = "202508300001"
@@ -15,20 +14,25 @@ branch_labels = None
 depends_on = None
 
 
-def upgrade() -> None:
+def _ts_default():
+    bind = op.get_bind()
+    if bind.dialect.name == "sqlite":
+        return sa.text("CURRENT_TIMESTAMP")
+    return sa.text("NOW()")
+
+
+def upgrade():
+    ts_default = _ts_default()
+
     op.create_table(
         "users",
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("email", sa.String(length=255), nullable=False),
-        sa.Column("display_name", sa.String(length=120), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("NOW()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("NOW()"), nullable=False),
+        sa.Column("email", sa.String(255), nullable=False, unique=True),
+        sa.Column("display_name", sa.String(120), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=ts_default),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=ts_default),
     )
-    op.create_index("ix_users_id", "users", ["id"])
-    op.create_index("ix_users_email", "users", ["email"], unique=True)
 
 
-def downgrade() -> None:
-    op.drop_index("ix_users_email", table_name="users")
-    op.drop_index("ix_users_id", table_name="users")
+def downgrade():
     op.drop_table("users")

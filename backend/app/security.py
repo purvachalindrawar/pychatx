@@ -1,42 +1,42 @@
+import uuid
 from datetime import datetime, timedelta, timezone
-import jwt
-from argon2 import PasswordHasher
-from fastapi import HTTPException, status
-from .settings import settings
+from jose import jwt
+from passlib.context import CryptContext
+from .config import JWT_SECRET, JWT_ALGO, ACCESS_MIN, REFRESH_DAYS, ISSUER
 
-ph = PasswordHasher()
+pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def hash_password(plain: str) -> str:
-    return ph.hash(plain)
+def hash_password(p: str) -> str:
+    return pwd.hash(p)
 
-def verify_password(hashed: str, plain: str) -> bool:
-    try:
-        return ph.verify(hashed, plain)
-    except Exception:
-        return False
+def verify_password(p: str, h: str) -> bool:
+    return pwd.verify(p, h)
 
-def _create_jwt(sub: str, token_type: str, expires_minutes: int) -> str:
-    now = datetime.now(timezone.utc)
-    exp = now + timedelta(minutes=expires_minutes)
+def now_utc() -> datetime:
+    return datetime.now(timezone.utc)
+
+def make_access_token(sub: str) -> str:
     payload = {
+        "iss": ISSUER,
         "sub": sub,
-        "type": token_type,
-        "iat": int(now.timestamp()),
-        "nbf": int(now.timestamp()),
-        "exp": int(exp.timestamp()),
+        "type": "access",
+        "exp": now_utc() + timedelta(minutes=ACCESS_MIN),
+        "iat": now_utc(),
+        "jti": str(uuid.uuid4()),
     }
-    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALG)
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGO)
 
-def create_access_token(sub: str) -> str:
-    return _create_jwt(sub, "access", settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-
-def create_refresh_token(sub: str) -> str:
-    return _create_jwt(sub, "refresh", settings.REFRESH_TOKEN_EXPIRE_MINUTES)
+def make_refresh_token(sub: str) -> tuple[str, str]:
+    jti = str(uuid.uuid4())
+    payload = {
+        "iss": ISSUER,
+        "sub": sub,
+        "type": "refresh",
+        "exp": now_utc() + timedelta(days=REFRESH_DAYS),
+        "iat": now_utc(),
+        "jti": jti,
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGO), jti
 
 def decode_token(token: str) -> dict:
-    try:
-        return jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALG])
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGO], options={"verify_aud": False})
