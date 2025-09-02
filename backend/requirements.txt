@@ -14,3 +14,4 @@ pywebpush>=1.9,<3.0
 cryptography>=41,<43
 sentry-sdk[fastapi]>=2.5,<2.8
 prometheus-client>=0.17,<0.21
+bcrypt==4.0.1
